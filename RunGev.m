@@ -14,6 +14,10 @@ if 1; %for testing
     X.nT=10000;
     X.Tim=linspace(0,1,X.nT)';
     
+    % Block length in years (e.g. X.BlcLngYrs=5 means that we are looking at 5-year maxima data)
+    % If BlcLngYrs is not defined, assume it is =1
+    X.BlcLngYrs=5;
+    
     % True parameters P0=[xi0;xi1;sgm0;sgm1;mu0;mu1] of linear regression 
     if 1; %Obvious difference
     X.Prm0=[...
@@ -61,6 +65,13 @@ if 1;
     Y.nT=size(X.Dat,1);
     Y.nB=10;
     Y.Blc=pMakCV(Y.nT,Y.nB,Y.Tim);
+    
+    % Check for existence of X.BlcLngYrs; if it exists, use it; otherwise set Y.BlcLngYrs=1
+    if isfield(X,'BlcLngYrs')==1;
+        Y.BlcLngYrs=X.BlcLngYrs;
+    else;
+        Y.BlcLngYrs=1;
+    end;
     
     clf;
     subplot(2,1,1); plot(Y.Tim, Y.Dat,'k.');
@@ -137,20 +148,21 @@ if 1;
     tXi=C.Prm(t,1);
     tSgm=C.Prm(t,3);
     tMu=C.Prm(t,5);
-    C.RV.Est(:,1)=(tSgm./tXi).*( (-log(1-1/C.RV.RtrPrd)).^(-tXi) - 1 ) + tMu; % Return value for year zero
+    C.RV.Est(:,1)=(tSgm./tXi).*( (-log(1-Y.BlcLngYrs/C.RV.RtrPrd)).^(-tXi) - 1 ) + tMu; % Return value for year zero
         
     % Parameter estimates at end
     tXi=C.Prm(t,1)+C.Prm(t,2);
     tSgm=C.Prm(t,3)+C.Prm(t,4);
     tMu=C.Prm(t,5)+C.Prm(t,6);
-    C.RV.Est(:,2)=(tSgm./tXi).*( (-log(1-1/C.RV.RtrPrd)).^(-tXi) - 1 ) + tMu; % Return value for year zero
+    C.RV.Est(:,2)=(tSgm./tXi).*( (-log(1-Y.BlcLngYrs/C.RV.RtrPrd)).^(-tXi) - 1 ) + tMu; % Return value for year zero
     
     % Summary statistics of differences
     C.RV.Prb=mean(C.RV.Est(:,2)>C.RV.Est(:,1)); % Prob. that RVEnd > RVStart
     C.RV.Cdf=[sort(C.RV.Est(:,1)) sort(C.RV.Est(:,2))];
     C.RV.Qnt=[quantile(C.RV.Est(:,1),[0.025 0.5 0.975]) quantile(C.RV.Est(:,2),[0.025 0.5 0.975])]; % Quantiles
-        
-        %% Figure
+    
+    
+    %% Figure
     clf; 
     C.RV.PrbVls=((1:C.RV.nRls)'-0.5)/C.RV.nRls;
     subplot(1,2,1); hold on;
@@ -160,18 +172,18 @@ if 1;
         tXi=X.Prm0(1);
         tSgm=X.Prm0(3);
         tMu=X.Prm0(5);
-        tRVTru=(tSgm./tXi).*( (-log(1-1/C.RV.RtrPrd)).^(-tXi) - 1 ) + tMu;
+        tRVTru=(tSgm./tXi).*( (-log(1-Y.BlcLngYrs/C.RV.RtrPrd)).^(-tXi) - 1 ) + tMu;
         plot(tRVTru*ones(2,1),[0 1]','k--','linewidth',2);
         tXi=X.Prm0(1)+X.Prm0(2);
         tSgm=X.Prm0(3)+X.Prm0(4);
         tMu=X.Prm0(5)+X.Prm0(6);
-        tRVTru=(tSgm./tXi).*( (-log(1-1/C.RV.RtrPrd)).^(-tXi) - 1 ) + tMu;
+        tRVTru=(tSgm./tXi).*( (-log(1-Y.BlcLngYrs/C.RV.RtrPrd)).^(-tXi) - 1 ) + tMu;
         plot(tRVTru*ones(2,1),[0 1]','r--','linewidth',2);
     end;
     pAxsLmt; pDflHug;
     title 'Distribution of RVStart (k), RVEnd (r) [True - - -]'; 
-    xlabel 'Annual maximum value';
-    ylabel('$F_{{Annual Maximum}}$','interpreter','latex')
+    xlabel(sprintf('%g-year maximum value',Y.BlcLngYrs));
+    ylabel(sprintf('$F_{{%gYearMaximum}}$',Y.BlcLngYrs),'interpreter','latex');
     pAxsLmt; pDflHug;
     %
     subplot(1,2,2); hold on;
@@ -179,8 +191,8 @@ if 1;
     plot(C.RV.Cdf(:,2),log10(1-C.RV.PrbVls),'r','linewidth',2);
     pAxsLmt; pDflHug;
     title 'Distribution of RVStart (k), RVEnd (r) [True - - -]'; 
-    xlabel 'Annual maximum value';
-    ylabel('$\log_{10}(1-F_{{Annual Maximum}})$')
+    xlabel(sprintf('%g-year maximum value',Y.BlcLngYrs));
+    ylabel(sprintf('$\\log_{10}(1-F_{{%gYearMaximum}})$',Y.BlcLngYrs),'interpreter','latex');
     pAxsLmt; pDflHug;
     %
     pDatStm(sprintf('Prb(RVEnd$>$RVStart)=%4.2f\n',C.RV.Prb)); pGI('RV',2);
@@ -198,33 +210,3 @@ if 1;
     end;
 
 end;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
